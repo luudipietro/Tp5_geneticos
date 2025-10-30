@@ -22,7 +22,7 @@ Utilice el AG Simple para resolver el problema del viajante o TSP (Travelling Sa
 
 El caso particular que usted debe resolver consiste de 14 ciudades, cuyas coordenadas son las siguientes (tomar la primera como punto de partida):
 """
-
+import matplotlib.pyplot as plt
 
 #[c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12 c13, c14, c1] cada individuo tiene las 15 ciudades por las que tiene que pasar
 #[c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12 c13, c14]
@@ -172,57 +172,40 @@ def geneticoSimple(Pop, cant_generac, Bounds, Enteras, sel, xover, mut, \
 
         return sol, solF, Pop, Fit, traceBest, traceAvg, bestSols
 
-def init_pop_tsp(num_ciudades, punto_inicial):
-    return range(1, num_ciudades).remove(punto_inicial).shuffle()
+def graficarEvolucionFitness(best, mean):
+    """Método para graficar la evolucion del fitness con las iteraciones.
+    Parametros
+    best, mean : list. Lista con los valores de evaluación de la mejor y peor solución.
+    """
+    fig = plt.figure()
+    ax = plt.axes()
+    x = range(len(best))
+    plt.plot(x, best, label='Mejor solución');
+    plt.plot(x, mean, label='Promedio poblacion');
+    plt.title('Valores de Evaluación')
+    plt.xlabel('Iteración')
+    plt.ylabel('Fitness')
+    plt.grid()
+    plt.legend()
+
+def init_pop_tsp(num_ciudades, punto_inicial, cantidad_individuos, Bounds):
+    array_base = list(range(1, num_ciudades))
+    array_base.remove(punto_inicial)
+    random.shuffle(array_base)
+    return [array_base.copy() for i in range(cantidad_individuos)]
 
 import math
 def distancia(coord_i, coord_j):
   #distancia Euclidea
   return math.sqrt((coord_i[0]-coord_j[0])**2 + (coord_i[1]-coord_j[1])**2)
 
-coordenadas = [
-  [-7.5984,-1.9725],
-  [-6.7323, 1.8807],
-  [-2.7165, 4.2661],
-  [-1.2992, 5.5505],
-  [-6.1024, 8.9450],
-  [-2.4803, 8.9450],
-  [ 4.2913, 7.0183],
-  [ 7.0472, 6.1009],
-  [ 8.1496, 8.4862],
-  [ 8.9370, 0.5963],
-  [ 2.6378, 0.6881],
-  [ 6.1811,-4.6330],
-  [ 1.7717,-7.0183],
-  [-5.1575,-8.4862]
-]
-def funcion_evaluacion(individuo):
+
+def funcion_evaluacion(individuo, coordenadas):
     dist_total = sum(distancia(coordenadas[individuo[i]-1], coordenadas[individuo[i+1]-1]) for i in range(len(individuo) - 1))
     return dist_total
-individuo_prueba = [2,4,3,6,8,11,13,5,8,9,10,12,7,14]
-
-print(funcion_evaluacion(individuo_prueba))
-
-x = [c[0] for c in coordenadas]
-y = [c[1] for c in coordenadas]
-
-import matplotlib.pyplot as plt
-plt.plot(x, y, 'xr', label='Ciudades');
-plt.plot(x[0], y[0], 'or', label='Inicio');
-plt.legend()
-plt.grid()
-plt.xlim([-9,12])
-print("Ciudades para el problema de TSP")
 
 """El algoritmo requiere conocer las distancias entre las ciudades para poder calcular la distancia total recorrida. Para ello se propone la siguiente funcion para calcular la distancia entre una ciudad *i* y *j*:"""
 
-
-
-#ejemplo
-ciudad_i = 1
-ciudad_j = 5
-d = distancia(coordenadas[ciudad_i], coordenadas[ciudad_j])
-print("Distancia entre ciudad %d y %d; %f"%(ciudad_i, ciudad_j, d))
 
 """Se pide:
 1. Determinar una codificación adecuada (forma de representar las soluciones  para el problema).
@@ -379,3 +362,95 @@ def xov_order_based(p1, p2):
             j += 1
             k += 1
     return c1, c2
+
+#Primeros operadores
+
+def sel_ruleta(F, cant_selectos, eps):
+    """ Operador de selección por torneos.
+    Parametros:
+    F: list. Lista de valores de fitness de cada individuo de la población.
+    cant_selectos: int. Cantidad de individuos a seleccionar.
+    eps: int. valor para normalizar el fitness.
+    S: list. Lista con las posiciones de los individuos seleccionados.
+    """
+
+    S = []
+    min_valor = min(F)
+    lista_ajustada = [(x - min_valor + eps) for x in F] #hacemos que sean todos positivos y mayores a cero
+    suma = sum(lista_ajustada)
+    pesos = [(x / suma) for x in lista_ajustada]
+    puntos_de_corte = [(sum(pesos[:i+1])) for i in range(len(pesos))]
+    tiros = [random.random() for i in range(cant_selectos)]
+    for tiro in tiros:
+        for i in range(len(puntos_de_corte)):
+            if tiro < puntos_de_corte[i]:
+                S.append(i)
+                break
+
+    return S
+
+def xov_uniform(P1, P2):
+    """Operador Uniform Crossover para Algoritmos Geneticos.
+    Parametros:
+    P1: list. Lista correspondiente a uno de los individuos padres a cruzar.
+    P2: list. Lista correspondiente a uno de los individuos padres a cruzar.
+    """
+
+    Mask = [1 if (i % 2 == 0) else 0 for i in range(len(P1))]
+    random.shuffle(Mask)
+
+    C1 = [P1[i] if Mask[i] == 1 else P2[i] for i in range(len(P1))]
+    C2 = [P2[i] if Mask[i] == 1 else P1[i] for i in range(len(P1))]
+
+    return C1, C2
+
+def xov_arith(P1, P2, explore=0):
+    """Operador Arith Crossover para Algoritmos Geneticos.
+    Parametros:
+    P1: list: Lista correspondiente a uno de los individuos padres a cruzar.
+    P2: list: Lista correspondiente a uno de los individuos padres a cruzar.
+    explore: float. Constante real que indica cuanto me puedo exceder del
+    hipercubo formado por las 2 soluciones. Se puede asignar por ejemplo, 0.25.
+    """
+    a = random.random() * (1 + explore)
+    C1 = [P1[i] * a + P2[i] * (1-a) for i in range(len(P1))]
+    C2 = [P1[i] * (1-a) + P2[i] * a for i in range(len(P1))]
+    return C1, C2
+
+def mut_boundary(P, Bounds):
+    """Step Mutation
+    Parámetros
+    P: list. Vector correspondiente a un individuo.
+    bounds: list. Matriz que indica los valores maximo y minimo de cada coordenada.
+    """
+    C = P.copy()
+    cut = random.randint(0,len(P)-1)
+    C[cut] = Bounds[cut][random.randint(0,1)]
+    return C
+
+def mut_step(P, Bounds):
+    """Step Mutation
+    Parámetros
+    P: list. Vector correspondiente a un individuo.
+    bounds: list. Matriz que indica los valores maximo y minimo de cada coordenada.
+    """
+
+    C = P.copy()
+    cut = random.randint(0,len(P)-1)
+    r = random.random()
+    nuevo_valor =  r * C[cut] + (1-r) * Bounds[cut][random.randint(0,1)]# if random.randint(0,1) == 0 else r * Bounds[cut][1] + (1-r) * C[cut]
+    C[cut] = round(nuevo_valor,1)
+
+    return C
+
+def mut_binary(P, Bounds):
+    """Binary Mutation
+    Parámetros
+    P: list. Vector correspondiente a un individuo.
+    """
+
+    Mask = [1 if (i % 2 == 0) else 0 for i in range(len(P))]
+    random.shuffle(Mask)
+    C = [P[i] if Mask[i] == 1 else not P[i] for i in range(len(P))]
+
+    return C

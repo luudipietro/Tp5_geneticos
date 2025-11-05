@@ -32,11 +32,11 @@ mut = mut_binary
 cant_mutados = round(0.1 * cant_individuos)
 callback = None #usar None para que no grafique y vaya mas rapido
 
-Pop = init_pop_tsp(len(coordenadas), 1, cant_individuos, Bounds)
+Pop = init_pop_tsp(len(coordenadas), 0, cant_individuos, Bounds)
 
 sol, solF, Pop, Fit, traceBest, traceAvg, bestSols = \
     geneticoSimple(Pop, cant_generac, Bounds, Enteras, sel, xover, mut, \
-        cant_cruzados, cant_mutados, cant_elite, eps, f, callback)
+        cant_cruzados, cant_mutados, cant_elite, eps, f,coordenadas, callback)
 
 graficarEvolucionFitness(traceBest, traceAvg)
 

@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 import random
 
 def geneticoSimple(Pop, cant_generac, Bounds, Enteras, sel, xover, mut, \
-                   cant_cruzados, cant_mutados, cant_elite, param_sel, f, callback=None):
+                   cant_cruzados, cant_mutados, cant_elite, param_sel, f, coordenadas, callback=None):
     """
     Algoritmo Genetico Simple
     Parametros:
@@ -108,7 +108,7 @@ def geneticoSimple(Pop, cant_generac, Bounds, Enteras, sel, xover, mut, \
     #realizo las evaluaciones de la poblacion inicial.
     for k in range(cant_soluc):
         Pop[k] = [xi if not Enteras[i] else int(xi+0.5) for i, xi in enumerate(Pop[k])]
-        Fit[k] = f(Pop[k])
+        Fit[k] = f(Pop[k], coordenadas)
     if callback != None:
         cb_param = callback(Pop, Fit, Bounds, 0, cant_generac, cb_param)
     #obtengo el orden de los individuos
@@ -151,7 +151,7 @@ def geneticoSimple(Pop, cant_generac, Bounds, Enteras, sel, xover, mut, \
         for k in range(cant_soluc):
             if Fit[k] == None:
                 Pop[k] = [xi if not Enteras[i] else int(xi+0.5) for i, xi in enumerate(Pop[k])]
-                Fit[k] = f(Pop[k]);
+                Fit[k] = f(Pop[k], coordenadas)
 
         #obtengo el orden de los individuos
         p_orden = sorted(range(len(Fit)), key=lambda k: Fit[k], reverse=True)
@@ -188,11 +188,14 @@ def graficarEvolucionFitness(best, mean):
     plt.grid()
     plt.legend()
 
-def init_pop_tsp(num_ciudades, punto_inicial, cantidad_individuos, Bounds):
-    array_base = list(range(1, num_ciudades))
+def create_base_array(num_ciudades, punto_inicial):
+    array_base = list(range(0, num_ciudades))
     array_base.remove(punto_inicial)
     random.shuffle(array_base)
-    return [array_base.copy() for i in range(cantidad_individuos)]
+    return array_base
+
+def init_pop_tsp(num_ciudades, punto_inicial, cantidad_individuos, Bounds):
+    return [create_base_array(num_ciudades, punto_inicial) for i in range(cantidad_individuos)]
 
 import math
 def distancia(coord_i, coord_j):
@@ -201,7 +204,9 @@ def distancia(coord_i, coord_j):
 
 
 def funcion_evaluacion(individuo, coordenadas):
-    dist_total = sum(distancia(coordenadas[individuo[i]-1], coordenadas[individuo[i+1]-1]) for i in range(len(individuo) - 1))
+    dist_total = sum(distancia(coordenadas[individuo[i]], coordenadas[individuo[i+1]]) for i in range(len(individuo) - 1))
+    dist_total += distancia(coordenadas[0], coordenadas[individuo[0]])
+    dist_total += distancia(coordenadas[individuo[-1]], coordenadas[0])
     return dist_total
 
 """El algoritmo requiere conocer las distancias entre las ciudades para poder calcular la distancia total recorrida. Para ello se propone la siguiente funcion para calcular la distancia entre una ciudad *i* y *j*:"""
